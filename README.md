@@ -68,6 +68,7 @@ cp .env.example .env            # add SEC_USER_AGENT and at least one API key
 riskrag ingest TXN MU INTC ADI --years 2
 riskrag extract TXN MU INTC ADI --provider openai
 riskrag compare TXN MU INTC ADI --provider openai --profile semiconductor
+riskrag items TXN                # check how Item 1A was split
 riskrag changes MU
 riskrag ask "How does each company describe export-control exposure?" --tickers TXN MU INTC ADI --provider anthropic
 

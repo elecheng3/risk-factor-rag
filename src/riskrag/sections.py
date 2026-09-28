@@ -10,9 +10,13 @@ fixed-size chunks when a filing has no detectable headings.
 from __future__ import annotations
 
 import re
+import warnings
 from dataclasses import asdict, dataclass
 
-from bs4 import BeautifulSoup, NavigableString, Tag
+from bs4 import BeautifulSoup, NavigableString, Tag, XMLParsedAsHTMLWarning
+
+# 10-K filings are inline-XBRL XHTML; parsing them as HTML is intended.
+warnings.filterwarnings("ignore", category=XMLParsedAsHTMLWarning)
 
 BLOCK_TAGS = {"p", "div", "li", "h1", "h2", "h3", "h4", "h5", "h6", "td"}
 START_RE = re.compile(r"^\s*item\s*1a\b", re.I)

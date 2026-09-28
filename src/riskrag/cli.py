@@ -4,6 +4,7 @@
   ingest TXN MU --years 2           download and parse the latest 10-Ks from SEC EDGAR
   extract TXN MU --provider openai  classify risk items with an LLM
   compare TXN MU --provider openai --profile semiconductor
+  items TXN                         list the risk headings parsed from the latest 10-K
   changes TXN                       risks added / removed versus the prior 10-K
   ask "question" --tickers TXN MU --provider anthropic
   providers TXN --providers openai anthropic gemini --limit 24
@@ -37,6 +38,7 @@ def main(argv: list[str] | None = None) -> None:
     p = sub.add_parser("ingest"); p.add_argument("tickers", nargs="+"); p.add_argument("--years", type=int, default=2)
     p = sub.add_parser("extract"); p.add_argument("tickers", nargs="+"); p.add_argument("--provider"); p.add_argument("--limit", type=int)
     p = sub.add_parser("compare"); p.add_argument("tickers", nargs="+"); p.add_argument("--provider"); p.add_argument("--profile", default="semiconductor")
+    p = sub.add_parser("items"); p.add_argument("ticker")
     p = sub.add_parser("changes"); p.add_argument("ticker")
     p = sub.add_parser("ask"); p.add_argument("question"); p.add_argument("--tickers", nargs="+", required=True); p.add_argument("--provider")
     p = sub.add_parser("providers"); p.add_argument("tickers", nargs="+"); p.add_argument("--providers", nargs="+")
@@ -78,6 +80,16 @@ def main(argv: list[str] | None = None) -> None:
         from .analysis import compare
         r = compare(cfg, args.tickers, _provider(args, cfg), args.profile)
         print(r["items"], "\n\nMean severity:\n", r["mean_severity"], "\n\n", r["weighted_index"])
+    elif args.cmd == "items":
+        from .store import latest
+        f = latest(cfg, args.ticker)
+        print(f"{f['filing']['company']} 10-K for {f['filing']['report_date']}: {len(f['items'])} risk items\n")
+        group = None
+        for it in f["items"]:
+            if it["group"] != group:
+                group = it["group"]
+                print(f"[{group or 'no group header'}]")
+            print(f"  {it['id']}  ({len(it['text']):>5} chars)  {it['heading'][:110]}")
     elif args.cmd == "changes":
         from .analysis import risk_changes
         print(risk_changes(cfg, args.ticker).to_string(index=False))
