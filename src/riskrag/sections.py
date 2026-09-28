@@ -22,6 +22,10 @@ BLOCK_TAGS = {"p", "div", "li", "h1", "h2", "h3", "h4", "h5", "h6", "td"}
 START_RE = re.compile(r"^\s*item\s*1a\b", re.I)
 END_RE = re.compile(r"^\s*item\s*(1b|1c|2)\b", re.I)
 EMPH_STYLE_RE = re.compile(r"font-weight\s*:\s*(bold|[6-9]00)|font-style\s*:\s*italic", re.I)
+# "Legal and regulatory risks Our operations could be affected ..." -> group, heading.
+# The prefix must end in "risk(s)" and be followed directly by a capitalised word,
+# which a sentence such as "Cybersecurity risks could ..." never is.
+GLUED_GROUP_RE = re.compile(r"^(.{3,120}?\b(?i:risks?))\s+([A-Z].{20,})$", re.S)
 
 
 @dataclass
@@ -115,7 +119,11 @@ def split_risks(section: list[Block], prefix: str, fallback_chars: int = 1500) -
             if not body:  # a header with no body directly above the next heading
                 group = section[i].text
                 continue
-            items.append(RiskItem(f"{prefix}-{len(items) + 1:03d}", section[i].text, body, group))
+            heading = section[i].text
+            m = GLUED_GROUP_RE.match(heading)
+            if m:  # group header and first risk heading in the same block
+                group, heading = m.group(1), m.group(2)
+            items.append(RiskItem(f"{prefix}-{len(items) + 1:03d}", heading, body, group))
     else:
         buf = ""
         for b in section:

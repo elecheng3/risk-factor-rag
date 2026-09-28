@@ -219,3 +219,20 @@ def test_provider_comparison_metrics(cfg, monkeypatch, tmp_path):
     assert human.loc["mock", "category_accuracy"] == 1.0 and human.loc["other", "category_accuracy"] == 0.0
     assert res["usage"].set_index("provider").loc["other", "input_tokens"] > 0
     assert "## agreement" in save_comparison(res, tmp_path / "out").read_text()
+
+
+def test_group_header_glued_to_first_heading_is_split():
+    risks = [("Legal and regulatory risks Our operations could be affected by complex laws and regulations.",
+              "Body about laws."),
+             ("Cybersecurity risks could disrupt our operations and expose confidential information.", "Body."),
+             ("We face risks related to our international operations and trade restrictions.", "Body."),
+             ("Our debt could affect our operations and financial condition going forward.", "Body."),
+             ("Material impairments of our goodwill could adversely affect our results.", "Body.")]
+    paras = "".join(f'<p><b>{h}</b></p><p>{b}</p>' for h, b in risks)
+    html = f"<html><body><p>Item 1A. Risk Factors</p>{paras}<p>Item 1B. Unresolved Staff Comments</p></body></html>"
+    items = extract_risk_items(html, "T-2025")
+    assert items[0].group == "Legal and regulatory risks"
+    assert items[0].heading.startswith("Our operations could be affected")
+    assert items[1].heading.startswith("Cybersecurity risks could")  # a sentence, not a header
+    assert items[2].heading.startswith("We face risks related")
+    assert all(i.group == "Legal and regulatory risks" for i in items)
